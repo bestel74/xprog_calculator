@@ -49,7 +49,8 @@ void display_Task_entry(void const * argument)
     for(;;)
     {
         evt = osMessageGet(msgbox_display, osWaitForever);  // wait for message
-        if (evt.status == osEventMessage) {
+        if (evt.status == osEventMessage)
+        {
             msg = evt.value.p;
             switch(msg->msgid)
             {

@@ -76,7 +76,8 @@ void calculator_Task_entry(void const * argument)
     for(;;)
     {
         evt = osMessageGet(msgbox_calculator, osWaitForever);  // wait for message
-        if (evt.status == osEventMessage) {
+        if (evt.status == osEventMessage)
+        {
             msg = evt.value.p;
             switch(msg->msgid)
             {
@@ -256,10 +257,7 @@ void calculator_changeOperator(E_KEYPAD_KEY keycode)
 
             case E_KEYPAD_KEY_DIV:
             {
-                if(calc.number != 0)
-                {
-                    calc.saved_number /= calc.number;
-                }
+                calc.saved_number /= calc.number;
             }
         }
         calc.number = 0;
