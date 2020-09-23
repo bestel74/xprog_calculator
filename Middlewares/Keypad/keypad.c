@@ -7,6 +7,7 @@
 #include "keypad.h"
 #include "string.h"
 #include "stm32f4xx.h"
+#include "calculator.h"
 
 #include "keypad_map.h"
 
@@ -63,138 +64,6 @@ void keypad_Task_entry(void const * argument)
                      keypad_scan();
                      break;
                  }
-
-                 case E_KEYPAD_MSG_ID_KEY_EVENT:
-                 {
-                     if(msg->data.key_event.event == E_KEYPAD_KEY_EVENT_PRESS)
-                     {
-                         switch(msg->data.key_event.key)
-                         {
-                             case E_KEYPAD_KEY_0:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_1:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_2:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_3:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_4:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_5:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_6:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_7:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_8:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_9:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_A:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_B:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_C:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_D:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_E:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_F:
-                             {
-                                 break;
-                             }
-
-
-                             case E_KEYPAD_KEY_PLUS:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_MINUS:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_MULT:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_DIV:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_EQUAL:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_MODE:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_SETTING:
-                             {
-                                 break;
-                             }
-
-                             case E_KEYPAD_KEY_CLEAR:
-                             {
-                                 break;
-                             }
-
-                         }
-                     }
-                     break;
-                 }
              }
 
              osPoolFree(mpool_keypad, msg);                  // free memory allocated for message
@@ -217,20 +86,6 @@ void keypad_sendMsg(E_KEYPAD_MSG_ID msg_id)
 }
 
 
-void keypad_sendEventKey(S_KEYPAD_MSG msg)
-{
-    S_KEYPAD_MSG *m;
-
-    m = osPoolAlloc(mpool_keypad);
-    if(m)
-    {
-        m->msgid = msg.msgid;
-        m->data.key_event = msg.data.key_event;
-        osMessagePut(msgbox_keypad, (uint32_t)m, osWaitForever);
-    }
-}
-
-
 
 
 void keypad_init()
@@ -247,7 +102,7 @@ void keypad_init()
 
 void keypad_scan()
 {
-    S_KEYPAD_MSG evt;
+    S_CALC_MSG evt;
 
     // Get new state
     for(uint8_t i=0 ; i < KEYPAD_OUTPUT_PINS ; i++)
@@ -272,11 +127,10 @@ void keypad_scan()
         {
             if(switch_state_prev[i][j] != switch_state_new[i][j])
             {
-                evt.msgid = E_KEYPAD_MSG_ID_KEY_EVENT;
-                evt.data.key_event.event = switch_state_new[i][j];
-                evt.data.key_event.key = keypad_map_convert(&keypad_map_output[i], &keypad_map_input[j]);
+                evt.msgid = E_CALC_MSG_ID_KEY_PRESS;
+                evt.data.key = keypad_map_convert(&keypad_map_output[i], &keypad_map_input[j]);
+                calculator_sendEventKey(evt);
 
-                keypad_sendEventKey(evt);
                 switch_state_prev[i][j] = switch_state_new[i][j];
             }
         }

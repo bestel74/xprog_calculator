@@ -20,22 +20,14 @@ osMessageQId  msgbox_display;
 
 
 
-S_SELECT_MODE current_mode =
-{
-    .mode = E_SELECT_MODE_DEC,
-};
 
+void display_mode(E_DISPLAY_MODE mode);
+void display_number(S_DISPLAY_NUMBER num);
 
-
-
-
-void display_mode(S_SELECT_MODE mode);
-void display_number(uint32_t num);
-
-void display_binary(uint32_t num);
-void display_decimal(uint32_t num);
-void display_hexa(uint32_t num);
-uint8_t convertToDigit(char num);
+void display_binary(S_DISPLAY_NUMBER num);
+void display_decimal(S_DISPLAY_NUMBER num);
+void display_hexa(S_DISPLAY_NUMBER num);
+uint8_t display_convertToDigit(char num);
 
 
 
@@ -50,48 +42,47 @@ void display_Task_create()
 
 void display_Task_entry(void const * argument)
 {
-  /* USER CODE BEGIN screenTask_entry */
     osEvent  evt;
     S_DISPLAY_MSG *msg;
 
-  /* Infinite loop */
-  for(;;)
-  {
-      evt = osMessageGet(msgbox_display, osWaitForever);  // wait for message
-      if (evt.status == osEventMessage) {
-          msg = evt.value.p;
-          switch(msg->msgid)
-          {
-              case E_DISPLAY_MSG_ID_DISPLAY_MODE:
-              {
-                  display_mode(msg->data.mode);
-                  break;
-              }
+    /* Infinite loop */
+    for(;;)
+    {
+        evt = osMessageGet(msgbox_display, osWaitForever);  // wait for message
+        if (evt.status == osEventMessage) {
+            msg = evt.value.p;
+            switch(msg->msgid)
+            {
+                case E_DISPLAY_MSG_ID_DISPLAY_MODE:
+                {
+                    display_mode(msg->data.mode);
+                    break;
+                }
 
-              case E_DISPLAY_MSG_ID_DISPLAY_NUMBER:
-              {
-                  display_number(msg->data.number);
-                  break;
-              }
-          }
+                case E_DISPLAY_MSG_ID_DISPLAY_NUMBER:
+                {
+                    display_number(msg->data.num);
+                    break;
+                }
+            }
 
-          osPoolFree(mpool_display, msg);                  // free memory allocated for message
-      }
-  }
-  /* USER CODE END screenTask_entry */
+            osPoolFree(mpool_display, msg);
+        }
+    }
 }
 
 
-void display_sendMsg(E_DISPLAY_MSG_ID msg_id)
+void display_sendMsg(S_DISPLAY_MSG msg)
 {
     // Screen refresh
-    S_DISPLAY_MSG    *msg;
+    S_DISPLAY_MSG    *m;
 
-    msg = osPoolAlloc(mpool_display);
-    if(msg)
+    m = osPoolAlloc(mpool_display);
+    if(m)
     {
-        msg->msgid = msg_id;
-        osMessagePut(msgbox_display, (uint32_t)msg, osWaitForever);
+        m->msgid = msg.msgid;
+        m->data = msg.data;
+        osMessagePut(msgbox_display, (uint32_t)m, osWaitForever);
     }
 }
 
@@ -106,9 +97,9 @@ void display_init()
     }
 }
 
-void display_mode(S_SELECT_MODE mode)
+void display_mode(E_DISPLAY_MODE mode)
 {
-    if(mode.mode == E_SELECT_MODE_BIN)
+    if(mode == E_DISPLAY_MODE_BIN)
     {
         HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
     }
@@ -117,7 +108,7 @@ void display_mode(S_SELECT_MODE mode)
         HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
     }
 
-    if(mode.mode == E_SELECT_MODE_DEC)
+    if(mode == E_DISPLAY_MODE_DEC)
     {
         HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
     }
@@ -126,7 +117,7 @@ void display_mode(S_SELECT_MODE mode)
         HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
     }
 
-    if(mode.mode == E_SELECT_MODE_HEX)
+    if(mode == E_DISPLAY_MODE_HEX)
     {
         HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
     }
@@ -135,7 +126,7 @@ void display_mode(S_SELECT_MODE mode)
         HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_3);
     }
 
-    if(mode.mode == E_SELECT_MODE_LSD)
+    if(mode == E_DISPLAY_MODE_LSD)
     {
         HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
     }
@@ -147,7 +138,7 @@ void display_mode(S_SELECT_MODE mode)
 
 
 
-void display_number(uint32_t num)
+void display_number(S_DISPLAY_NUMBER num)
 {
     display_binary(num);
     display_decimal(num);
@@ -155,11 +146,59 @@ void display_number(uint32_t num)
 }
 
 
-void display_binary(uint32_t num)
+// Blue  = b00 - b07 = DIG0
+//         b08 - b15 = DIG2
+//         b16 - b23 = DIG4
+//         b24 - b31 = DIG6
+
+// Green = b00 - b07 = DIG1
+//         b08 - b15 = DIG3
+//         b16 - b23 = DIG5
+//         b24 - b31 = DIG7
+void display_binary(S_DISPLAY_NUMBER num)
 {
+    uint8_t disp_number = 0;
+    uint8_t digit_number = 0;
+
     for(int8_t i=0 ; i < 4 ; i++)
     {
-        while(ch423_setDigit(E_DISPLAY_BINARY, i, (num >> i*8) & 0xFF) != 0)
+        switch(num.bin_color)
+        {
+            case E_DISPLAY_BINARY_COLOR_BLUE:
+            {
+                disp_number = (num.number >> i*8) & 0xFF;
+                digit_number = i*2;
+            }
+            case E_DISPLAY_BINARY_COLOR_GREEN:
+            {
+                disp_number = (num.number >> i*8) & 0xFF;
+                digit_number = i*2 +1;
+            }
+        }
+
+        // Display '1' with 'on' color setting
+        while(ch423_setDigit(E_DISPLAY_BINARY, digit_number, disp_number) != 0)
+        {
+            osDelay(1);
+        }
+    }
+
+    // Turn off secondary color channel
+    for(int8_t i=0 ; i < 4 ; i++)
+    {
+        switch(num.bin_color)
+        {
+            case E_DISPLAY_BINARY_COLOR_BLUE:
+            {
+                digit_number = i*2 +1;
+            }
+            case E_DISPLAY_BINARY_COLOR_GREEN:
+            {
+                digit_number = i*2;
+            }
+        }
+
+        while(ch423_setDigit(E_DISPLAY_BINARY, digit_number, 0) != 0)
         {
             osDelay(1);
         }
@@ -167,15 +206,19 @@ void display_binary(uint32_t num)
 }
 
 
-void display_decimal(uint32_t num)
+void display_decimal(S_DISPLAY_NUMBER num)
 {
     char dig[12] = {0};
 
-    snprintf(dig, 12, "%ld", num);
+    snprintf(dig, 12, "%ld", num.number);
+    for(int8_t i=0 ; i < 12 ; i++)
+    {
+        dig[i] -= 0x30; // ASCII to Number
+    }
 
     for(int8_t i=0 ; i < 12 ; i++)
     {
-        while(ch423_setDigit(E_DISPLAY_HEXA, i, convertToDigit(dig[i])) != 0)
+        while(ch423_setDigit(E_DISPLAY_DECIMAL, i, display_convertToDigit(dig[i])) != 0)
         {
             osDelay(1);
         }
@@ -183,15 +226,34 @@ void display_decimal(uint32_t num)
 }
 
 
-void display_hexa(uint32_t num)
+void display_hexa(S_DISPLAY_NUMBER num)
 {
     char dig[8] = {0};
+    uint8_t digit_number;
 
-    snprintf(dig, 8, "%lX", num);
-
+    snprintf(dig, 8, "%lX", num.number);
     for(int8_t i=0 ; i < 8 ; i++)
     {
-        while(ch423_setDigit(E_DISPLAY_HEXA, i, convertToDigit(dig[i])) != 0)
+        dig[i] -= 0x30; // ASCII to Number
+    }
+
+    for(int8_t i=0 ; i < 4 ; i++)
+    {
+        if(num.lsb)
+        {
+            digit_number = 3 - i;
+        }
+        else
+        {
+            digit_number = i;
+        }
+
+        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2), display_convertToDigit(dig[(i*2)])) != 0)
+        {
+            osDelay(1);
+        }
+
+        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2)+1, display_convertToDigit(dig[(i*2)+1])) != 0)
         {
             osDelay(1);
         }
@@ -199,7 +261,7 @@ void display_hexa(uint32_t num)
 }
 
 
-uint8_t convertToDigit(char num)
+uint8_t display_convertToDigit(char num)
 {
     S_DIGIT dig;
 

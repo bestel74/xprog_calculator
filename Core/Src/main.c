@@ -26,6 +26,7 @@
 /* USER CODE BEGIN Includes */
 #include "display.h"
 #include "keypad.h"
+#include "calculator.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -507,6 +508,7 @@ void StartDefaultTask(void const * argument)
   // Start system task
   keypad_Task_create();
   display_Task_create();
+  calculator_Task_create();
 
   /* Infinite loop */
   for(;;)

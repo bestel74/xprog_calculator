@@ -65,18 +65,11 @@ typedef struct
 typedef enum
 {
     E_KEYPAD_MSG_ID_REFRESH,
-    E_KEYPAD_MSG_ID_KEY_EVENT
 } E_KEYPAD_MSG_ID;
 
 typedef struct
 {
   E_KEYPAD_MSG_ID  msgid;
-
-  union
-  {
-      S_KEYPAD_KEY_EVENT key_event;
-  } data;
-
 } S_KEYPAD_MSG;
 
 
@@ -85,7 +78,6 @@ typedef struct
 void keypad_Task_create();
 void keypad_Task_entry(void const * argument);
 void keypad_sendMsg(E_KEYPAD_MSG_ID msg_id);
-void keypad_sendEventKey(S_KEYPAD_MSG msg);
 
 void keypad_init();
 
