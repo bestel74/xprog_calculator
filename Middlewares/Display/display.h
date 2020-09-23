@@ -8,9 +8,8 @@
 #ifndef DISPLAY_DISPLAY_H_
 #define DISPLAY_DISPLAY_H_
 
-#include "stm32f4xx.h"
 
-extern TIM_HandleTypeDef htim2;
+#include "cmsis_os.h"
 
 
 
@@ -29,7 +28,7 @@ typedef struct
         E_SELECT_MODE mode;
         uint8_t value;
     };
-} S_CALC_MODE;
+} S_SELECT_MODE;
 
 typedef struct
 {
@@ -51,8 +50,33 @@ typedef struct
 
 
 
+
+typedef enum
+{
+    E_DISPLAY_MSG_ID_DISPLAY_MODE,
+    E_DISPLAY_MSG_ID_DISPLAY_NUMBER
+} E_DISPLAY_MSG_ID;
+
+typedef struct
+{
+    E_DISPLAY_MSG_ID  msgid;
+
+    union
+    {
+        S_SELECT_MODE mode;
+        uint32_t number;
+    } data;
+
+} S_DISPLAY_MSG;
+
+
+
+
+void display_Task_create();
+void display_Task_entry(void const * argument);
+void display_sendMsg(E_DISPLAY_MSG_ID msg_id);
+
 void display_init();
-void display(S_CALC_MODE mode, uint32_t num);
 
 
 #endif /* DISPLAY_DISPLAY_H_ */

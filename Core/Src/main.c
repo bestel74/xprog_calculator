@@ -25,6 +25,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "display.h"
+#include "keypad.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,11 +52,8 @@ DMA_HandleTypeDef hdma_i2c3_tx;
 
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
-TIM_HandleTypeDef htim4;
 
 osThreadId defaultTaskHandle;
-osThreadId keypadTaskHandle;
-osThreadId screenTaskHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -69,10 +67,7 @@ static void MX_I2C2_Init(void);
 static void MX_I2C3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
-static void MX_TIM4_Init(void);
 void StartDefaultTask(void const * argument);
-void keypadTask_entry(void const * argument);
-void screenTask_entry(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -81,48 +76,6 @@ void screenTask_entry(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-
-//////////////////////////////////////////// KEYPAD MESSAGE POOL DEF
-typedef enum {
-    E_MSG_KEYPAD_REFRESH,
-}E_MSG_KEYPAD;
-
-typedef struct {
-  E_MSG_KEYPAD  msgid;
-} S_MSG_KEYPAD;
-
-osPoolDef(mpool_keypad, 16, S_MSG_KEYPAD);
-osPoolId  mpool_keypad;
-osMessageQDef(msgbox_keypad, 16, S_MSG_KEYPAD*);
-osMessageQId  msgbox_keypad;
-
-
-//////////////////////////////////////////// DISPLAY MESSAGE POOL DEF
-typedef enum {
-    E_MSG_DISPLAY_REFRESH,
-}E_MSG_DISPLAY;
-
-typedef struct {
-  E_MSG_DISPLAY  msgid;
-} S_MSG_DISPLAY;
-
-osPoolDef(mpool_display, 16, S_MSG_DISPLAY);
-osPoolId  mpool_display;
-osMessageQDef(msgbox_display, 16, S_MSG_DISPLAY*);
-osMessageQId  msgbox_display;
-
-
-//////////////////////////////////////////// GLOBAL PRIVATE VARIABLE
-
-S_CALC_MODE current_mode =
-{
-        .mode = E_SELECT_MODE_DEC,
-};
-uint32_t current_disp_number = 0;
-uint32_t saved_number = 0;
-
-
-//////////////////////////////////////////// END
 /* USER CODE END 0 */
 
 /**
@@ -159,7 +112,6 @@ int main(void)
   MX_I2C3_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
-  MX_TIM4_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -185,16 +137,8 @@ int main(void)
   osThreadDef(defaultTask, StartDefaultTask, osPriorityLow, 0, 512);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
-  /* definition and creation of keypadTask */
-  osThreadDef(keypadTask, keypadTask_entry, osPriorityHigh, 0, 512);
-  keypadTaskHandle = osThreadCreate(osThread(keypadTask), NULL);
-
-  /* definition and creation of screenTask */
-  osThreadDef(screenTask, screenTask_entry, osPriorityNormal, 0, 512);
-  screenTaskHandle = osThreadCreate(osThread(screenTask), NULL);
-
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -228,13 +172,12 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 25;
+  RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
   RCC_OscInitStruct.PLL.PLLQ = 7;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -254,7 +197,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  HAL_RCC_MCOConfig(RCC_MCO2, RCC_MCO2SOURCE_SYSCLK, RCC_MCODIV_1);
+  HAL_RCC_MCOConfig(RCC_MCO2, RCC_MCO2SOURCE_HSE, RCC_MCODIV_1);
 }
 
 /**
@@ -476,51 +419,6 @@ static void MX_TIM3_Init(void)
 }
 
 /**
-  * @brief TIM4 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM4_Init(void)
-{
-
-  /* USER CODE BEGIN TIM4_Init 0 */
-
-  /* USER CODE END TIM4_Init 0 */
-
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM4_Init 1 */
-
-  /* USER CODE END TIM4_Init 1 */
-  htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 8399;
-  htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 99;
-  htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim4, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM4_Init 2 */
-
-  /* USER CODE END TIM4_Init 2 */
-
-}
-
-/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -552,6 +450,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -605,98 +504,16 @@ void StartDefaultTask(void const * argument)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
 
-  display_init();
-
-  // TEST MODE - ALL ON
-  current_mode.value = 0xff;
-  display(current_mode, 0xffffffff);
-  osDelay(2000);
-
-  // Default boot value
-  current_mode.value = 0;
-  current_mode.mode = E_SELECT_MODE_DEC;
-
-  display(current_mode, 0);
-
-  // Start all timers
-  HAL_TIM_Base_Start_IT(&htim3);
-  HAL_TIM_Base_Start_IT(&htim4);
-
+  // Start system task
+  keypad_Task_create();
+  display_Task_create();
 
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    osDelay(1000);
   }
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_keypadTask_entry */
-/**
-* @brief Function implementing the keypadTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_keypadTask_entry */
-void keypadTask_entry(void const * argument)
-{
-    /* USER CODE BEGIN keypadTask_entry */
-    osEvent  evt;
-    S_MSG_KEYPAD *msg;
-
-    /* Infinite loop */
-     for(;;)
-     {
-         evt = osMessageGet(msgbox_keypad, osWaitForever);  // wait for message
-         if (evt.status == osEventMessage) {
-             msg = evt.value.p;
-             switch(msg->msgid)
-             {
-                 case E_MSG_KEYPAD_REFRESH:
-                 {
-
-                     break;
-                 }
-             }
-
-             osPoolFree(mpool_keypad, msg);                  // free memory allocated for message
-         }
-     }
-  /* USER CODE END keypadTask_entry */
-}
-
-/* USER CODE BEGIN Header_screenTask_entry */
-/**
-* @brief Function implementing the screenTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_screenTask_entry */
-void screenTask_entry(void const * argument)
-{
-  /* USER CODE BEGIN screenTask_entry */
-    osEvent  evt;
-    S_MSG_DISPLAY *msg;
-
-  /* Infinite loop */
-  for(;;)
-  {
-      evt = osMessageGet(msgbox_display, osWaitForever);  // wait for message
-      if (evt.status == osEventMessage) {
-          msg = evt.value.p;
-          switch(msg->msgid)
-          {
-              case E_MSG_DISPLAY_REFRESH:
-              {
-                  display(current_mode, current_disp_number++);
-                  break;
-              }
-          }
-
-          osPoolFree(mpool_display, msg);                  // free memory allocated for message
-      }
-  }
-  /* USER CODE END screenTask_entry */
 }
 
 /**
@@ -723,26 +540,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   else if (htim->Instance == TIM3)
   {
       // Keyboard
-      S_MSG_KEYPAD    *msg;
-
-      msg = osPoolAlloc(mpool_keypad);
-      if(msg)
-      {
-          msg->msgid = E_MSG_KEYPAD_REFRESH;
-          osMessagePut(msgbox_keypad, (uint32_t)msg, osWaitForever);
-      }
-  }
-  else if (htim->Instance == TIM4)
-  {
-      // Screen refresh
-      S_MSG_DISPLAY    *msg;
-
-      msg = osPoolAlloc(mpool_display);
-      if(msg)
-      {
-          msg->msgid = E_MSG_DISPLAY_REFRESH;
-          osMessagePut(msgbox_display, (uint32_t)msg, osWaitForever);
-      }
+      keypad_sendMsg(E_KEYPAD_MSG_ID_REFRESH);
   }
   /* USER CODE END Callback 1 */
 }
