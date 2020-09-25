@@ -126,14 +126,15 @@ void keypad_scan()
     {
         for(uint8_t j=0 ; j < KEYPAD_INPUT_PINS ; j++)
         {
-            if(switch_state_prev[i][j] != switch_state_new[i][j])
+            if(switch_state_prev[i][j] == 0 && switch_state_new[i][j] == 1)
             {
                 evt.msgid = E_CALC_MSG_ID_KEY_PRESS;
                 evt.data.key = keypad_map_convert(&keypad_map_output[i], &keypad_map_input[j]);
                 calculator_sendEventKey(evt);
-
-                switch_state_prev[i][j] = switch_state_new[i][j];
             }
         }
     }
+
+    // Save new state as previous state
+    memcpy(switch_state_prev, switch_state_new, KEYPAD_OUTPUT_PINS * KEYPAD_INPUT_PINS);
 }
