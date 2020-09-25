@@ -115,7 +115,7 @@ void keypad_scan()
 
         for(uint8_t j=0 ; j < KEYPAD_INPUT_PINS ; j++)
         {
-            switch_state_new[i][j] = HAL_GPIO_ReadPin(keypad_map_input[i].gpio, keypad_map_input[i].pin);
+            switch_state_new[i][j] = HAL_GPIO_ReadPin(keypad_map_input[j].gpio, keypad_map_input[j].pin);
         }
 
         HAL_GPIO_WritePin(keypad_map_output[i].gpio, keypad_map_output[i].pin, GPIO_PIN_RESET);
