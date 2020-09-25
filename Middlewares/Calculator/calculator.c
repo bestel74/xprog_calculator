@@ -45,6 +45,7 @@ S_CALC_CURRENT calc =
 
 
 
+void calculator_handleKey(E_KEYPAD_KEY key);
 void calculator_changeMode();
 void calculator_clear();
 void calculator_newKey(E_KEYPAD_KEY key);
@@ -83,67 +84,72 @@ void calculator_Task_entry(void const * argument)
             {
                 case E_CALC_MSG_ID_KEY_PRESS:
                 {
-                    switch(msg->data.key)
-                    {
-                        case E_KEYPAD_KEY_0:
-                        case E_KEYPAD_KEY_1:
-                        case E_KEYPAD_KEY_2:
-                        case E_KEYPAD_KEY_3:
-                        case E_KEYPAD_KEY_4:
-                        case E_KEYPAD_KEY_5:
-                        case E_KEYPAD_KEY_6:
-                        case E_KEYPAD_KEY_7:
-                        case E_KEYPAD_KEY_8:
-                        case E_KEYPAD_KEY_9:
-                        case E_KEYPAD_KEY_A:
-                        case E_KEYPAD_KEY_B:
-                        case E_KEYPAD_KEY_C:
-                        case E_KEYPAD_KEY_D:
-                        case E_KEYPAD_KEY_E:
-                        case E_KEYPAD_KEY_F:
-                        {
-                            calculator_newKey(msg->data.key);
-                            break;
-                        }
-
-                        case E_KEYPAD_KEY_PLUS:
-                        case E_KEYPAD_KEY_MINUS:
-                        case E_KEYPAD_KEY_MULT:
-                        case E_KEYPAD_KEY_DIV:
-                        {
-                            calculator_changeOperator(msg->data.key);
-                            break;
-                        }
-
-                        case E_KEYPAD_KEY_EQUAL:
-                        {
-                            calculator_enter();
-                            break;
-                        }
-
-                        case E_KEYPAD_KEY_MODE:
-                        {
-                            calculator_changeMode();
-                            break;
-                        }
-
-                        case E_KEYPAD_KEY_SETTING:
-                        {
-                            calculator_changeSetting();
-                            break;
-                        }
-
-                        case E_KEYPAD_KEY_CLEAR:
-                        {
-                            calculator_clear();
-                            break;
-                        }
-                    }
-                    break;
+                    calculator_handleKey(msg->data.key);
                 }
             }
 
             osPoolFree(mpool_calculator, msg);
+        }
+    }
+}
+
+
+void calculator_handleKey(E_KEYPAD_KEY key)
+{
+    switch(key)
+    {
+        case E_KEYPAD_KEY_0:
+        case E_KEYPAD_KEY_1:
+        case E_KEYPAD_KEY_2:
+        case E_KEYPAD_KEY_3:
+        case E_KEYPAD_KEY_4:
+        case E_KEYPAD_KEY_5:
+        case E_KEYPAD_KEY_6:
+        case E_KEYPAD_KEY_7:
+        case E_KEYPAD_KEY_8:
+        case E_KEYPAD_KEY_9:
+        case E_KEYPAD_KEY_A:
+        case E_KEYPAD_KEY_B:
+        case E_KEYPAD_KEY_C:
+        case E_KEYPAD_KEY_D:
+        case E_KEYPAD_KEY_E:
+        case E_KEYPAD_KEY_F:
+        {
+            calculator_newKey(key);
+            break;
+        }
+
+        case E_KEYPAD_KEY_PLUS:
+        case E_KEYPAD_KEY_MINUS:
+        case E_KEYPAD_KEY_MULT:
+        case E_KEYPAD_KEY_DIV:
+        {
+            calculator_changeOperator(key);
+            break;
+        }
+
+        case E_KEYPAD_KEY_EQUAL:
+        {
+            calculator_enter();
+            break;
+        }
+
+        case E_KEYPAD_KEY_MODE:
+        {
+            calculator_changeMode();
+            break;
+        }
+
+        case E_KEYPAD_KEY_SETTING:
+        {
+            calculator_changeSetting();
+            break;
+        }
+
+        case E_KEYPAD_KEY_CLEAR:
+        {
+            calculator_clear();
+            break;
         }
     }
 }
