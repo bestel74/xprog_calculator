@@ -32,9 +32,9 @@ typedef enum
 
 typedef struct
 {
-    uint32_t number;
     E_DISPLAY_BINARY_COLOR bin_color;
-    uint8_t lsb;
+    E_DISPLAY_MODE mode;
+    uint32_t number;
 } S_DISPLAY_NUMBER;
 
 typedef struct

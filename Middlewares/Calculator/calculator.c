@@ -52,9 +52,8 @@ void calculator_newKey(E_KEYPAD_KEY key);
 void calculator_changeOperator(E_KEYPAD_KEY key);
 void calculator_changeSetting();
 void calculator_enter();
-void calculator_display_mode();
-void calculator_display_number();
-void calculator_display_saved_number();
+void calculator_display_mode(E_DISPLAY_MODE mode);
+void calculator_display_number(uint32_t number);
 
 
 
@@ -191,7 +190,7 @@ void calculator_changeMode()
     // Merge new mode with actual LSB Mode
     calc.mode = (calc.mode & E_DISPLAY_MODE_LSD) | (cm & ~(E_DISPLAY_MODE_LSD));
 
-    calculator_display_mode();
+    calculator_display_mode(calc.mode);
 }
 
 
@@ -200,7 +199,7 @@ void calculator_clear()
     calc.number = 0;
     calc.saved_number = 0;
 
-    calculator_display_number();
+    calculator_display_number(calc.number);
 }
 
 
@@ -235,7 +234,7 @@ void calculator_newKey(uint8_t keycode)
         }
     }
 
-    calculator_display_number();
+    calculator_display_number(calc.number);
 }
 
 
@@ -266,8 +265,9 @@ void calculator_changeOperator(E_KEYPAD_KEY keycode)
                 calc.saved_number /= calc.number;
             }
         }
+
         calc.number = 0;
-        calculator_display_saved_number();
+        calculator_display_number(calc.saved_number);
     }
     // First time pressing an operator?
     else if(calc.number != 0)
@@ -295,7 +295,7 @@ void calculator_changeSetting()
     // And flip LSB mode
     calc.mode ^= E_DISPLAY_MODE_LSD;
 
-    calculator_display_mode();
+    calculator_display_mode(calc.mode);
 }
 
 
@@ -305,59 +305,49 @@ void calculator_enter()
     {
         case E_KEYPAD_KEY_PLUS:
         {
-            calc.number = calc.saved_number + calc.number;
+            calc.saved_number += calc.number;
         }
 
         case E_KEYPAD_KEY_MINUS:
         {
-            calc.number = calc.saved_number - calc.number;
+            calc.saved_number -= calc.number;
         }
 
         case E_KEYPAD_KEY_MULT:
         {
-            calc.number = calc.saved_number * calc.number;
+            calc.saved_number *= calc.number;
         }
 
         case E_KEYPAD_KEY_DIV:
         {
             if(calc.number != 0)
             {
-                calc.number = calc.saved_number / calc.number;
+                calc.saved_number /= calc.number;
             }
         }
     }
 
-    calc.saved_number = 0;
-    calculator_display_number();
+    calc.number = 0;
+    calculator_display_number(calc.saved_number);
 }
 
 
-void calculator_display_mode()
+void calculator_display_mode(E_DISPLAY_MODE mode)
 {
     S_DISPLAY_MSG m;
     m.msgid = E_DISPLAY_MSG_ID_DISPLAY_MODE;
-    m.data.mode = calc.mode;
+    m.data.mode = mode;
 
     display_sendMsg(m);
 }
 
 
-void calculator_display_number()
+void calculator_display_number(uint32_t number)
 {
     S_DISPLAY_MSG m;
     m.msgid = E_DISPLAY_MSG_ID_DISPLAY_NUMBER;
-    m.data.num.number = calc.number;
-    m.data.num.lsb = calc.mode & E_DISPLAY_MODE_LSD;
-
-    display_sendMsg(m);
-}
-
-void calculator_display_saved_number()
-{
-    S_DISPLAY_MSG m;
-    m.msgid = E_DISPLAY_MSG_ID_DISPLAY_NUMBER;
-    m.data.num.number = calc.saved_number;
-    m.data.num.lsb = calc.mode & E_DISPLAY_MODE_LSD;
+    m.data.num.number = number;
+    m.data.num.mode = calc.mode;
 
     display_sendMsg(m);
 }

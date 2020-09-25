@@ -5,6 +5,7 @@
  *      Author: steven
  */
 #include "stdio.h"
+#include "string.h"
 #include "display.h"
 #include "ch423.h"
 
@@ -212,7 +213,7 @@ void display_decimal(S_DISPLAY_NUMBER num)
     char dig[12] = {0};
 
     snprintf(dig, 12, "%ld", num.number);
-    for(int8_t i=0 ; i < 12 ; i++)
+    for(int8_t i=0 ; i < strnlen(dig, 12) ; i++)
     {
         dig[i] -= 0x30; // ASCII to Number
     }
@@ -233,14 +234,14 @@ void display_hexa(S_DISPLAY_NUMBER num)
     uint8_t digit_number;
 
     snprintf(dig, 8, "%lX", num.number);
-    for(int8_t i=0 ; i < 8 ; i++)
+    for(int8_t i=0 ; i < strnlen(dig, 8) ; i++)
     {
         dig[i] -= 0x30; // ASCII to Number
     }
 
     for(int8_t i=0 ; i < 4 ; i++)
     {
-        if(num.lsb)
+        if(num.mode & E_DISPLAY_MODE_LSD)
         {
             digit_number = 3 - i;
         }
