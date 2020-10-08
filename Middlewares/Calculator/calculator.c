@@ -12,10 +12,10 @@
 
 
 osThreadId calculatorTaskHandle;
-osPoolDef(mpool_calculator, 16, S_CALC_MSG);
-osPoolId  mpool_calculator;
-osMessageQDef(msgbox_calculator, 16, S_CALC_MSG*);
-osMessageQId  msgbox_calculator;
+osPoolDef(mpool_calc, 16, S_CALC_MSG);
+osPoolId  mpool_calc_id;
+osMessageQDef(msgbox_calc, 16, S_CALC_MSG*);
+osMessageQId  msgbox_calc_id;
 
 
 
@@ -63,6 +63,9 @@ void calculator_Task_create()
     osThreadDef(calculatorTask, calculator_Task_entry, osPriorityNormal, 0, 512);
     calculatorTaskHandle = osThreadCreate(osThread(calculatorTask), NULL);
 
+    mpool_calc_id = osPoolCreate(osPool(mpool_calc));
+    msgbox_calc_id = osMessageCreate(osMessageQ(msgbox_calc), NULL);
+
     calculator_init();
 }
 
@@ -75,7 +78,7 @@ void calculator_Task_entry(void const * argument)
     /* Infinite loop */
     for(;;)
     {
-        evt = osMessageGet(msgbox_calculator, osWaitForever);  // wait for message
+        evt = osMessageGet(msgbox_calc_id, osWaitForever);  // wait for message
         if (evt.status == osEventMessage)
         {
             msg = evt.value.p;
@@ -87,7 +90,7 @@ void calculator_Task_entry(void const * argument)
                 }
             }
 
-            osPoolFree(mpool_calculator, msg);
+            osPoolFree(mpool_calc_id, msg);
         }
     }
 }
@@ -158,12 +161,15 @@ void calculator_sendEventKey(S_CALC_MSG msg)
 {
     S_CALC_MSG *m;
 
-    m = osPoolAlloc(mpool_calculator);
-    if(m)
+    if(msgbox_calc_id)
     {
-        m->msgid = msg.msgid;
-        m->data.key = msg.data.key;
-        osMessagePut(msgbox_calculator, (uint32_t)m, osWaitForever);
+        m = osPoolAlloc(mpool_calc_id);
+        if(m)
+        {
+            m->msgid = msg.msgid;
+            m->data.key = msg.data.key;
+            osMessagePut(msgbox_calc_id, (uint32_t)m, osWaitForever);
+        }
     }
 }
 

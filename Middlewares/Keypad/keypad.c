@@ -17,9 +17,9 @@ extern TIM_HandleTypeDef htim3;
 
 osThreadId keypadTaskHandle;
 osPoolDef(mpool_keypad, 16, S_KEYPAD_MSG);
-osPoolId  mpool_keypad;
+osPoolId  mpool_keypad_id;
 osMessageQDef(msgbox_keypad, 16, S_KEYPAD_MSG*);
-osMessageQId  msgbox_keypad;
+osMessageQId  msgbox_keypad_id;
 
 
 
@@ -39,6 +39,9 @@ void keypad_Task_create()
     osThreadDef(keypadTask, keypad_Task_entry, osPriorityHigh, 0, 512);
     keypadTaskHandle = osThreadCreate(osThread(keypadTask), NULL);
 
+    mpool_keypad_id = osPoolCreate(osPool(mpool_keypad));
+    msgbox_keypad_id = osMessageCreate(osMessageQ(msgbox_keypad), NULL);
+
     keypad_init();
 
     HAL_TIM_Base_Start_IT(&htim3);
@@ -54,7 +57,7 @@ void keypad_Task_entry(void const * argument)
     /* Infinite loop */
      for(;;)
      {
-         evt = osMessageGet(msgbox_keypad, osWaitForever);  // wait for message
+         evt = osMessageGet(msgbox_keypad_id, osWaitForever);  // wait for message
          if (evt.status == osEventMessage)
          {
              msg = evt.value.p;
@@ -67,7 +70,7 @@ void keypad_Task_entry(void const * argument)
                  }
              }
 
-             osPoolFree(mpool_keypad, msg);                  // free memory allocated for message
+             osPoolFree(mpool_keypad_id, msg);                  // free memory allocated for message
          }
      }
   /* USER CODE END keypadTask_entry */
@@ -78,11 +81,14 @@ void keypad_sendMsg(E_KEYPAD_MSG_ID msg_id)
 {
     S_KEYPAD_MSG *msg;
 
-    msg = osPoolAlloc(mpool_keypad);
-    if(msg)
+    if(msgbox_keypad_id)
     {
-        msg->msgid = msg_id;
-        osMessagePut(msgbox_keypad, (uint32_t)msg, osWaitForever);
+        msg = osPoolAlloc(mpool_keypad_id);
+        if(msg)
+        {
+            msg->msgid = msg_id;
+            osMessagePut(msgbox_keypad_id, (uint32_t)msg, osWaitForever);
+        }
     }
 }
 

@@ -14,10 +14,10 @@ extern TIM_HandleTypeDef htim2;
 
 
 osThreadId displayTaskHandle;
-osPoolDef(mpool_display, 16, S_DISPLAY_MSG);
-osPoolId  mpool_display;
-osMessageQDef(msgbox_display, 16, S_DISPLAY_MSG*);
-osMessageQId  msgbox_display;
+osPoolDef(mpool_disp, 16, S_DISPLAY_MSG);
+osPoolId  mpool_disp_id;
+osMessageQDef(msgbox_disp, 16, S_DISPLAY_MSG*);
+osMessageQId  msgbox_disp_id;
 
 
 
@@ -34,8 +34,11 @@ uint8_t display_convertToDigit(char num);
 
 void display_Task_create()
 {
-    osThreadDef(displayTask, display_Task_entry, osPriorityNormal, 0, 512);
+    osThreadDef(displayTask, display_Task_entry, osPriorityRealtime, 0, 512);
     displayTaskHandle = osThreadCreate(osThread(displayTask), NULL);
+
+    mpool_disp_id = osPoolCreate(osPool(mpool_disp));
+    msgbox_disp_id = osMessageCreate(osMessageQ(msgbox_disp), NULL);
 
     display_init();
 }
@@ -49,7 +52,7 @@ void display_Task_entry(void const * argument)
     /* Infinite loop */
     for(;;)
     {
-        evt = osMessageGet(msgbox_display, osWaitForever);  // wait for message
+        evt = osMessageGet(msgbox_disp_id, osWaitForever);  // wait for message
         if (evt.status == osEventMessage)
         {
             msg = evt.value.p;
@@ -68,7 +71,7 @@ void display_Task_entry(void const * argument)
                 }
             }
 
-            osPoolFree(mpool_display, msg);
+            osPoolFree(mpool_disp_id, msg);
         }
     }
 }
@@ -79,12 +82,15 @@ void display_sendMsg(S_DISPLAY_MSG msg)
     // Screen refresh
     S_DISPLAY_MSG    *m;
 
-    m = osPoolAlloc(mpool_display);
-    if(m)
+    if(msgbox_disp_id)
     {
-        m->msgid = msg.msgid;
-        m->data = msg.data;
-        osMessagePut(msgbox_display, (uint32_t)m, osWaitForever);
+        m = osPoolAlloc(mpool_disp_id);
+        if(m)
+        {
+            m->msgid = msg.msgid;
+            m->data = msg.data;
+            osMessagePut(msgbox_disp_id, (uint32_t)m, osWaitForever);
+        }
     }
 }
 

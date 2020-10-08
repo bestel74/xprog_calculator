@@ -139,7 +139,9 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
-
+  keypad_Task_create();
+  display_Task_create();
+  calculator_Task_create();
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -198,7 +200,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  HAL_RCC_MCOConfig(RCC_MCO2, RCC_MCO2SOURCE_HSE, RCC_MCODIV_1);
+  HAL_RCC_MCOConfig(RCC_MCO2, RCC_MCO2SOURCE_SYSCLK, RCC_MCODIV_4);
 }
 
 /**
@@ -504,11 +506,6 @@ void StartDefaultTask(void const * argument)
   /* init code for USB_DEVICE */
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 5 */
-
-  // Start system task
-  keypad_Task_create();
-  display_Task_create();
-  calculator_Task_create();
 
   /* Infinite loop */
   for(;;)
