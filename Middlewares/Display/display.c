@@ -34,7 +34,7 @@ uint8_t display_convertToDigit(char num);
 
 void display_Task_create()
 {
-    osThreadDef(displayTask, display_Task_entry, osPriorityRealtime, 0, 512);
+    osThreadDef(displayTask, display_Task_entry, osPriorityLow, 0, 512);
     displayTaskHandle = osThreadCreate(osThread(displayTask), NULL);
 
     mpool_disp_id = osPoolCreate(osPool(mpool_disp));
