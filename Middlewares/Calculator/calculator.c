@@ -307,9 +307,16 @@ void calculator_changeSetting()
 
     // And flip LSB mode
     //calc.mode ^= E_DISPLAY_MODE_LSD;
+    //calculator_display_mode(calc.mode);
 
-    calculator_display_mode(calc.mode);
-    calculator_display_number(calc.number);
+    if(calc.number == 0 && calc.saved_number != 0)
+    {
+        calculator_display_number(calc.saved_number);
+    }
+    else
+    {
+        calculator_display_number(calc.number);
+    }
 }
 
 
