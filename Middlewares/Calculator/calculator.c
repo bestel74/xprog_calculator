@@ -35,7 +35,7 @@ typedef struct
 S_CALC_CURRENT calc =
 {
     .mode = E_DISPLAY_MODE_DEC,
-    .bin_color = E_DISPLAY_BINARY_COLOR_BLUE,
+    .bin_color = E_DISPLAY_BINARY_COLOR_GREEN,
 
     .number = 0,
     .saved_number = 0,
@@ -189,7 +189,7 @@ void calculator_changeMode()
     cm = cm << 1;
 
     // Only 3 mode, 0x01, 0x02 and 0x04
-    if(cm > 0x08)
+    if(cm >= 0x08)
     {
         cm = 0x01;
     }
@@ -221,6 +221,7 @@ void calculator_newKey(uint8_t keycode)
             {
                 calc.number = (calc.number << 1) | keycode;
             }
+            break;
         }
 
         case E_DISPLAY_MODE_DEC:
@@ -229,6 +230,7 @@ void calculator_newKey(uint8_t keycode)
             {
                 calc.number = (calc.number * 10) + keycode;
             }
+            break;
         }
 
         case E_DISPLAY_MODE_HEX:
@@ -237,6 +239,7 @@ void calculator_newKey(uint8_t keycode)
             {
                 calc.number = (calc.number << 4) | keycode;
             }
+            break;
         }
     }
 
@@ -254,21 +257,25 @@ void calculator_changeOperator(E_KEYPAD_KEY keycode)
             case E_KEYPAD_KEY_PLUS:
             {
                 calc.saved_number += calc.number;
+                break;
             }
 
             case E_KEYPAD_KEY_MINUS:
             {
                 calc.saved_number -= calc.number;
+                break;
             }
 
             case E_KEYPAD_KEY_MULT:
             {
                 calc.saved_number *= calc.number;
+                break;
             }
 
             case E_KEYPAD_KEY_DIV:
             {
                 calc.saved_number /= calc.number;
+                break;
             }
         }
 
@@ -299,9 +306,10 @@ void calculator_changeSetting()
     }
 
     // And flip LSB mode
-    calc.mode ^= E_DISPLAY_MODE_LSD;
+    //calc.mode ^= E_DISPLAY_MODE_LSD;
 
     calculator_display_mode(calc.mode);
+    calculator_display_number(calc.number);
 }
 
 
@@ -312,16 +320,19 @@ void calculator_enter()
         case E_KEYPAD_KEY_PLUS:
         {
             calc.saved_number += calc.number;
+            break;
         }
 
         case E_KEYPAD_KEY_MINUS:
         {
             calc.saved_number -= calc.number;
+            break;
         }
 
         case E_KEYPAD_KEY_MULT:
         {
             calc.saved_number *= calc.number;
+            break;
         }
 
         case E_KEYPAD_KEY_DIV:
@@ -330,6 +341,7 @@ void calculator_enter()
             {
                 calc.saved_number /= calc.number;
             }
+            break;
         }
     }
 
@@ -352,6 +364,7 @@ void calculator_display_number(uint32_t number)
 {
     S_DISPLAY_MSG m;
     m.msgid = E_DISPLAY_MSG_ID_DISPLAY_NUMBER;
+    m.data.num.bin_color = calc.bin_color;
     m.data.num.number = number;
     m.data.num.mode = calc.mode;
 

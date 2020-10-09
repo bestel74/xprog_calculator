@@ -99,48 +99,56 @@ void display_sendMsg(S_DISPLAY_MSG msg)
 
 void display_init()
 {
+    S_DISPLAY_NUMBER num;
+    num.bin_color = E_DISPLAY_BINARY_COLOR_GREEN;
+    num.mode = E_DISPLAY_MODE_DEC;
+    num.number = 0;
+
     while(ch423_init() != 0)
     {
         HAL_Delay(1);
     }
+
+    display_number(num);
+    display_mode(num.mode);
 }
 
 void display_mode(E_DISPLAY_MODE mode)
 {
-    if(mode == E_DISPLAY_MODE_BIN)
+    if(mode & E_DISPLAY_MODE_BIN)
     {
-        HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+        HAL_TIM_PWM_Start(&htim2, MODE_BIN_HW_TIMER);
     }
     else
     {
-        HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
+        HAL_TIM_PWM_Stop(&htim2, MODE_BIN_HW_TIMER);
     }
 
-    if(mode == E_DISPLAY_MODE_DEC)
+    if(mode & E_DISPLAY_MODE_DEC)
     {
-        HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+        HAL_TIM_PWM_Start(&htim2, MODE_DEC_HW_TIMER);
     }
     else
     {
-        HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_2);
+        HAL_TIM_PWM_Stop(&htim2, MODE_DEC_HW_TIMER);
     }
 
-    if(mode == E_DISPLAY_MODE_HEX)
+    if(mode & E_DISPLAY_MODE_HEX)
     {
-        HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
+        HAL_TIM_PWM_Start(&htim2, MODE_HEX_HW_TIMER);
     }
     else
     {
-        HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_3);
+        HAL_TIM_PWM_Stop(&htim2, MODE_HEX_HW_TIMER);
     }
 
-    if(mode == E_DISPLAY_MODE_LSD)
+    if(mode & E_DISPLAY_MODE_LSD)
     {
-        HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
+        HAL_TIM_PWM_Start(&htim2, MODE_LSD_HW_TIMER);
     }
     else
     {
-        HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_4);
+        HAL_TIM_PWM_Stop(&htim2, MODE_LSD_HW_TIMER);
     }
 }
 
@@ -166,49 +174,43 @@ void display_number(S_DISPLAY_NUMBER num)
 void display_binary(S_DISPLAY_NUMBER num)
 {
     uint8_t disp_number = 0;
-    uint8_t digit_number = 0;
 
-    for(int8_t i=0 ; i < 4 ; i++)
+    // Turn off all leds
+    for(int8_t i=0 ; i < 8 ; i++)
     {
-        switch(num.bin_color)
-        {
-            case E_DISPLAY_BINARY_COLOR_BLUE:
-            {
-                disp_number = (num.number >> i*8) & 0xFF;
-                digit_number = i*2;
-            }
-            case E_DISPLAY_BINARY_COLOR_GREEN:
-            {
-                disp_number = (num.number >> i*8) & 0xFF;
-                digit_number = i*2 +1;
-            }
-        }
-
-        // Display '1' with 'on' color setting
-        while(ch423_setDigit(E_DISPLAY_BINARY, digit_number, disp_number) != 0)
+        while(ch423_setDigit(E_DISPLAY_BINARY, i, 0) != 0)
         {
             osDelay(1);
         }
     }
 
-    // Turn off secondary color channel
+    // Turn on leds
     for(int8_t i=0 ; i < 4 ; i++)
     {
+        disp_number = (num.number >> i*8) & 0xFF;
+
         switch(num.bin_color)
         {
+            // Blue = CH423 OC0, OC2, 0C4, 0C6
             case E_DISPLAY_BINARY_COLOR_BLUE:
             {
-                digit_number = i*2 +1;
+                // Display '1' with 'on' color setting
+                while(ch423_setDigit(E_DISPLAY_BINARY, i*2, disp_number) != 0)
+                {
+                    osDelay(1);
+                }
+                break;
             }
+            // Green = CH423 OC1, OC3, 0C5, 0C7
             case E_DISPLAY_BINARY_COLOR_GREEN:
             {
-                digit_number = i*2;
+                // Display '1' with 'on' color setting
+                while(ch423_setDigit(E_DISPLAY_BINARY, (i*2)+1, disp_number) != 0)
+                {
+                    osDelay(1);
+                }
+                break;
             }
-        }
-
-        while(ch423_setDigit(E_DISPLAY_BINARY, digit_number, 0) != 0)
-        {
-            osDelay(1);
         }
     }
 }
@@ -216,17 +218,21 @@ void display_binary(S_DISPLAY_NUMBER num)
 
 void display_decimal(S_DISPLAY_NUMBER num)
 {
-    char dig[12] = {0};
+    char dig[13] = {0};
 
-    snprintf(dig, 12, "%ld", num.number);
-    for(int8_t i=0 ; i < strnlen(dig, 12) ; i++)
-    {
-        dig[i] -= 0x30; // ASCII to Number
-    }
-
-    for(int8_t i=0 ; i < 12 ; i++)
+    snprintf(dig, 13, "%lu", num.number);
+    // Set digits
+    for(int8_t i=strlen(dig)-1 ; i >= 0 ; i--)
     {
         while(ch423_setDigit(E_DISPLAY_DECIMAL, i, display_convertToDigit(dig[i])) != 0)
+        {
+            osDelay(1);
+        }
+    }
+    // Erase others
+    for(int8_t i=strlen(dig) ; i < 12 ; i++)
+    {
+        while(ch423_setDigit(E_DISPLAY_DECIMAL, i, 0) != 0)
         {
             osDelay(1);
         }
@@ -236,36 +242,47 @@ void display_decimal(S_DISPLAY_NUMBER num)
 
 void display_hexa(S_DISPLAY_NUMBER num)
 {
-    char dig[8] = {0};
+    char dig[9] = {0};
     uint8_t digit_number;
 
-    snprintf(dig, 8, "%lX", num.number);
-    for(int8_t i=0 ; i < strnlen(dig, 8) ; i++)
+    snprintf(dig, 9, "%lX", num.number);
+    // Set digits
+    for(int8_t i=strlen(dig)-1 ; i >= 0 ; i--)
     {
-        dig[i] -= 0x30; // ASCII to Number
-    }
-
-    for(int8_t i=0 ; i < 4 ; i++)
-    {
-        if(num.mode & E_DISPLAY_MODE_LSD)
-        {
-            digit_number = 3 - i;
-        }
-        else
-        {
-            digit_number = i;
-        }
-
-        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2), display_convertToDigit(dig[(i*2)])) != 0)
-        {
-            osDelay(1);
-        }
-
-        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2)+1, display_convertToDigit(dig[(i*2)+1])) != 0)
+        while(ch423_setDigit(E_DISPLAY_HEXA, i, display_convertToDigit(dig[i])) != 0)
         {
             osDelay(1);
         }
     }
+    // Erase others
+    for(int8_t i=strlen(dig) ; i < 8 ; i++)
+    {
+        while(ch423_setDigit(E_DISPLAY_HEXA, i, 0) != 0)
+        {
+            osDelay(1);
+        }
+    }
+//    for(int8_t i=0 ; i < 4 ; i++)
+//    {
+//        if(num.mode & E_DISPLAY_MODE_LSD)
+//        {
+//            digit_number = 3 - i;
+//        }
+//        else
+//        {
+//            digit_number = i;
+//        }
+//
+//        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2), display_convertToDigit(dig[(i*2)])) != 0)
+//        {
+//            osDelay(1);
+//        }
+//
+//        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2)+1, display_convertToDigit(dig[(i*2)+1])) != 0)
+//        {
+//            osDelay(1);
+//        }
+//    }
 }
 
 

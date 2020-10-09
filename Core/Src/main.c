@@ -397,7 +397,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 8399;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 99;
+  htim3.Init.Period = 199;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -465,7 +465,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = KEYPAD_OUTPUT_ROW_0_Pin|KEYPAD_OUTPUT_ROW_1_Pin|KEYPAD_OUTPUT_ROW_2_Pin|KEYPAD_OUTPUT_ROW_3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : KEYPAD_INPUT_COL_0_Pin KEYPAD_INPUT_COL_1_Pin KEYPAD_INPUT_COL_2_Pin KEYPAD_INPUT_COL_3_Pin */

@@ -13,6 +13,21 @@
 
 
 
+#if defined(FIX_V1)
+    #define MODE_BIN_HW_TIMER       TIM_CHANNEL_3
+    #define MODE_DEC_HW_TIMER       TIM_CHANNEL_2
+    #define MODE_HEX_HW_TIMER       TIM_CHANNEL_1
+    #define MODE_LSD_HW_TIMER       TIM_CHANNEL_4
+#else
+    #define MODE_BIN_HW_TIMER       TIM_CHANNEL_1
+    #define MODE_DEC_HW_TIMER       TIM_CHANNEL_2
+    #define MODE_HEX_HW_TIMER       TIM_CHANNEL_3
+    #define MODE_LSD_HW_TIMER       TIM_CHANNEL_4
+#endif
+
+
+
+
 typedef enum
 {
     E_DISPLAY_MODE_BIN = 0x01,

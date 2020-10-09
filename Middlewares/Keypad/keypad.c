@@ -26,6 +26,7 @@ osMessageQId  msgbox_keypad_id;
 
 uint8_t switch_state_new[KEYPAD_OUTPUT_PINS][KEYPAD_INPUT_PINS];
 uint8_t switch_state_prev[KEYPAD_OUTPUT_PINS][KEYPAD_INPUT_PINS];
+uint32_t switch_debounce[KEYPAD_OUTPUT_PINS][KEYPAD_INPUT_PINS];
 
 
 
@@ -97,19 +98,22 @@ void keypad_sendMsg(E_KEYPAD_MSG_ID msg_id)
 
 void keypad_init()
 {
-    memset(switch_state_new, 0, KEYPAD_OUTPUT_PINS + KEYPAD_INPUT_PINS);
-    memset(switch_state_prev, 0, KEYPAD_OUTPUT_PINS + KEYPAD_INPUT_PINS);
+    memset(switch_state_new, 0, KEYPAD_OUTPUT_PINS * KEYPAD_INPUT_PINS);
+    memset(switch_state_prev, 0, KEYPAD_OUTPUT_PINS * KEYPAD_INPUT_PINS);
+    memset(switch_debounce, 0, KEYPAD_OUTPUT_PINS * KEYPAD_INPUT_PINS);
 
-    HAL_GPIO_WritePin(keypad_map_output[0].gpio, keypad_map_output[0].pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(keypad_map_output[1].gpio, keypad_map_output[1].pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(keypad_map_output[2].gpio, keypad_map_output[2].pin, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(keypad_map_output[3].gpio, keypad_map_output[3].pin, GPIO_PIN_RESET);
+    for(uint8_t i=0 ; i < KEYPAD_OUTPUT_PINS ; i++)
+    {
+        HAL_GPIO_WritePin(keypad_map_output[i].gpio, keypad_map_output[i].pin, GPIO_PIN_RESET);
+    }
 }
 
 
 void keypad_scan()
 {
     S_CALC_MSG evt;
+    static uint32_t debounce_cnt = 0;
+    debounce_cnt++;
 
     // Get new state
     for(uint8_t i=0 ; i < KEYPAD_OUTPUT_PINS ; i++)
@@ -125,6 +129,9 @@ void keypad_scan()
         }
 
         HAL_GPIO_WritePin(keypad_map_output[i].gpio, keypad_map_output[i].pin, GPIO_PIN_RESET);
+
+        // Let low-pass filter voltage down
+        osDelay(2);
     }
 
     // Compare to previous state to generate UP/DOWN events
@@ -134,9 +141,28 @@ void keypad_scan()
         {
             if(switch_state_prev[i][j] == 0 && switch_state_new[i][j] == 1)
             {
-                evt.msgid = E_CALC_MSG_ID_KEY_PRESS;
-                evt.data.key = keypad_map_convert(&keypad_map_output[i], &keypad_map_input[j]);
-                calculator_sendEventKey(evt);
+                uint32_t saved_debounce = switch_debounce[i][j];
+                uint32_t debounce_delta;
+
+                // Debounce counter overflow
+                if(saved_debounce > debounce_cnt)
+                {
+                    debounce_delta = (0xFFFFFFFF - saved_debounce) + debounce_cnt;
+                }
+                else
+                {
+                    debounce_delta = debounce_cnt - saved_debounce;
+                }
+
+                // Debounce condition
+                if(saved_debounce == 0 || debounce_delta >= KEYPAD_DEBOUNCE_MS)
+                {
+                    evt.msgid = E_CALC_MSG_ID_KEY_PRESS;
+                    evt.data.key = keypad_map_convert(&keypad_map_output[i], &keypad_map_input[j]);
+                    calculator_sendEventKey(evt);
+
+                    switch_debounce[i][j] = debounce_cnt;
+                }
             }
         }
     }

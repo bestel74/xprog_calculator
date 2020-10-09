@@ -13,6 +13,8 @@
 
 #define KEYPAD_OUTPUT_PINS     4
 #define KEYPAD_INPUT_PINS      6
+#define KEYPAD_TIMER_MS        20
+#define KEYPAD_DEBOUNCE_MS     1000 / KEYPAD_TIMER_MS
 
 
 
