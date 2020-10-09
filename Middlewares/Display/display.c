@@ -221,10 +221,11 @@ void display_decimal(S_DISPLAY_NUMBER num)
     char dig[13] = {0};
 
     snprintf(dig, 13, "%lu", num.number);
+
     // Set digits
-    for(int8_t i=strlen(dig)-1 ; i >= 0 ; i--)
+    for(int8_t i=0, invert=strlen(dig)-1 ; i < strlen(dig) ; i++, invert--)
     {
-        while(ch423_setDigit(E_DISPLAY_DECIMAL, i, display_convertToDigit(dig[i])) != 0)
+        while(ch423_setDigit(E_DISPLAY_DECIMAL, i, display_convertToDigit(dig[invert])) != 0)
         {
             osDelay(1);
         }
@@ -243,13 +244,13 @@ void display_decimal(S_DISPLAY_NUMBER num)
 void display_hexa(S_DISPLAY_NUMBER num)
 {
     char dig[9] = {0};
-    uint8_t digit_number;
 
     snprintf(dig, 9, "%lX", num.number);
+
     // Set digits
-    for(int8_t i=strlen(dig)-1 ; i >= 0 ; i--)
+    for(int8_t i=0, invert=strlen(dig)-1 ; i < strlen(dig) ; i++, invert--)
     {
-        while(ch423_setDigit(E_DISPLAY_HEXA, i, display_convertToDigit(dig[i])) != 0)
+        while(ch423_setDigit(E_DISPLAY_HEXA, i, display_convertToDigit(dig[invert])) != 0)
         {
             osDelay(1);
         }
@@ -262,27 +263,6 @@ void display_hexa(S_DISPLAY_NUMBER num)
             osDelay(1);
         }
     }
-//    for(int8_t i=0 ; i < 4 ; i++)
-//    {
-//        if(num.mode & E_DISPLAY_MODE_LSD)
-//        {
-//            digit_number = 3 - i;
-//        }
-//        else
-//        {
-//            digit_number = i;
-//        }
-//
-//        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2), display_convertToDigit(dig[(i*2)])) != 0)
-//        {
-//            osDelay(1);
-//        }
-//
-//        while(ch423_setDigit(E_DISPLAY_HEXA, (digit_number*2)+1, display_convertToDigit(dig[(i*2)+1])) != 0)
-//        {
-//            osDelay(1);
-//        }
-//    }
 }
 
 
